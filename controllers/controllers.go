@@ -30,6 +30,10 @@ func CreateStudent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if err := models.ValidateStudent(&student); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	database.DB.Create(&student)
 	c.JSON(http.StatusCreated, student)
 }
@@ -46,18 +50,22 @@ func DeleteStudent(c *gin.Context) {
 }
 
 func UpdateStudent(c *gin.Context) {
-	var toUpdateStudent, existingStudent models.Student
+	var student models.Student
 	id := c.Params.ByName("id")
-	if err := c.ShouldBindJSON(&toUpdateStudent); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	if err := database.DB.First(&existingStudent, id).Error; err != nil {
+	if err := database.DB.First(&student, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Student not found"})
 		return
 	}
-	database.DB.Model(&existingStudent).UpdateColumns(toUpdateStudent)
-	c.JSON(http.StatusOK, existingStudent)
+	if err := c.ShouldBindJSON(&student); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := models.ValidateStudent(&student); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	database.DB.Save(student)
+	c.JSON(http.StatusOK, student)
 }
 
 func GetStudentByCPF(c *gin.Context) {
